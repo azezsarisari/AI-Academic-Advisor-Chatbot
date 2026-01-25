@@ -58,9 +58,9 @@ This project was developed collaboratively by a team of three students.
 All members contributed to system design, implementation, testing, evaluation, and documentation.
 
 **Team Members:**
-- [Your Name]
-- [Teammate Name 1]
-- [Teammate Name 2]
+- "Al-Mugheeratu_Aws" Ibnu Abi Hujayr
+- Abdalaziz Riyad Sari
+- Hassan F. Ghuri
 
 ---
 
