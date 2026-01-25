@@ -1,0 +1,184 @@
+# ============================================================
+# 📊 FINAL ROBUST EVALUATION (ALL MAJORS)
+# - Canonical answers
+# - Soft matching
+# - Same logic, fairer accuracy
+# ============================================================
+
+import os, time, random, re
+import pandas as pd
+import numpy as np
+import importlib.util
+
+APP_PATH = "/content/app.py"
+assert os.path.exists(APP_PATH), "❌ app.py غير موجود"
+
+# ---------------------------
+# 1) Load app.py as module
+# ---------------------------
+spec = importlib.util.spec_from_file_location("appm", APP_PATH)
+appm = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(appm)
+
+desc_df = appm.desc_df.fillna("").astype(str)
+
+# ---------------------------
+# 2) Helpers
+# ---------------------------
+def norm(s):
+    return appm.normalize_ar(str(s or "")).strip()
+
+def canonical(v):
+    v = norm(v)
+    if v in ["", "لا يوجد", "لا يوجد متطلب سابق", "لا توجد مادة متزامنة"]:
+        return ""
+    return v
+
+def soft_match(a, b):
+    a, b = canonical(a), canonical(b)
+    if not a and not b:
+        return True
+    if a in b or b in a:
+        return True
+    return False
+
+def latency_ms(fn, *args):
+    t0 = time.time()
+    out = fn(*args)
+    return out, (time.time() - t0) * 1000
+
+def resolve_field(val):
+    if hasattr(appm, "resolve_course_field"):
+        return str(appm.resolve_course_field(val) or "").strip()
+    return str(val or "").strip()
+
+# ---------------------------
+# 3) Majors
+# ---------------------------
+majors = sorted(
+    [m.strip() for m in desc_df["اسم التخصص"].unique() if m.strip()]
+)
+
+print("📚 Majors Found:")
+for m in majors:
+    print(" -", m)
+
+summary = []
+
+# ---------------------------
+# 4) Evaluation per major
+# ---------------------------
+for MAJOR in majors:
+    print("\n" + "="*70)
+    print(f"🎓 Evaluating Major: {MAJOR}")
+    print("="*70)
+
+    sub = desc_df[
+        desc_df["اسم التخصص"].str.contains(MAJOR, regex=False, na=False)
+    ].copy()
+
+    if sub.empty:
+        print("⚠️ No courses, skipped")
+        continue
+
+    random.seed(42)
+    sample = sub.sample(min(25, len(sub)), random_state=42).to_dict("records")
+
+    templates = {
+        "desc": "شو وصف مادة {n}",
+        "prereq": "شو متطلبها السابق لمادة {n}",
+        "conc": "شو المادة المتزامنة مع مادة {n}",
+        "hours": "كم عدد ساعات مادة {n}",
+        "type": "نوع مادة {n}",
+    }
+
+    tests = []
+    for r in sample:
+        name = r["اسم المادة"]
+        for kind, tpl in templates.items():
+            tests.append({
+                "kind": kind,
+                "q": tpl.format(n=name),
+                "course": name,
+                "expected": {
+                    "prereq": resolve_field(r["المتطلب السابق"]),
+                    "conc": resolve_field(r["المواد المتزامنة"]),
+                    "hours": r["عدد الساعات"],
+                    "type": r["نوع المادة"],
+                    "desc": name
+                }[kind]
+            })
+
+    course_ok = intent_ok = direct_ok = 0
+    latencies = []
+
+    for t in tests:
+        (row, _, _), ms = latency_ms(appm.search_course_for_major, t["q"], MAJOR, 3)
+        latencies.append(ms)
+
+        # Course accuracy
+        got_course = row["اسم المادة"] if row is not None else ""
+        if got_course == t["course"]:
+            course_ok += 1
+
+        # Intent accuracy
+        intent, _ = appm.detect_intent(t["q"])
+        if intent == "course_query":
+            intent_ok += 1
+
+        # Direct accuracy
+        if row is not None and t["kind"] != "desc":
+            ans = appm.handle_direct_question(t["q"], row) or ""
+            got_val = ans.split(":", 1)[-1].strip() if ":" in ans else ans.strip()
+            if t["kind"] == "hours":
+                try:
+                    if float(got_val) == float(t["expected"]):
+                        direct_ok += 1
+                except:
+                    pass
+            else:
+                if soft_match(got_val, t["expected"]):
+                    direct_ok += 1
+
+    N = len(tests)
+    direct_total = sum(1 for t in tests if t["kind"] != "desc")
+
+    course_acc = 100 * course_ok / N
+    intent_acc = 100 * intent_ok / N
+    direct_acc = 100 * direct_ok / direct_total
+
+    lat = np.array(latencies)
+    mean_lat = lat.mean()
+    p90 = np.percentile(lat, 90)
+
+    print(f"🧪 Questions        : {N}")
+    print(f"✅ Course Accuracy  : {course_acc:.2f}%")
+    print(f"✅ Intent Accuracy  : {intent_acc:.2f}%")
+    print(f"✅ Direct Accuracy  : {direct_acc:.2f}%")
+    print(f"⏱️  Mean Latency     : {mean_lat:.1f} ms")
+
+    summary.append({
+        "major": MAJOR,
+        "questions": N,
+        "course_acc": round(course_acc, 2),
+        "intent_acc": round(intent_acc, 2),
+        "direct_acc": round(direct_acc, 2),
+        "lat_mean_ms": round(mean_lat, 1),
+        "lat_p90_ms": round(p90, 1)
+    })
+
+# ---------------------------
+# 5) Final summary table
+# ---------------------------
+print("\n" + "="*70)
+print("📊 FINAL SUMMARY (ALL MAJORS)")
+print("="*70)
+
+summary_df = pd.DataFrame(summary)
+display(summary_df)
+
+print("\n📈 Overall Averages:")
+print("✅ Avg Course Accuracy :", round(summary_df["course_acc"].mean(), 2), "%")
+print("✅ Avg Intent Accuracy :", round(summary_df["intent_acc"].mean(), 2), "%")
+print("✅ Avg Direct Accuracy :", round(summary_df["direct_acc"].mean(), 2), "%")
+print("⏱️  Avg Latency (ms)   :", round(summary_df["lat_mean_ms"].mean(), 1))
