@@ -1,0 +1,309 @@
+%%writefile templates/index.html
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🎓 المساعد البلقاء الذكي</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --green: #00703c;
+      --light-green: #e8f2ec;
+      --bg: #f5f7f5;
+      --text: #1d1d1b;
+      --bot-msg: #eef1f0;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      font-family: 'Cairo', sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .chat-container {
+      width: 90%;
+      max-width: 850px;
+      height: 90vh;
+      background: white;
+      border-radius: 25px;
+      box-shadow: 0 7px 25px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .chat-header {
+      background: linear-gradient(90deg, #006b3f, #fcd307);
+      color: white;
+      font-size: 1.4rem;
+      padding: 16px;
+      text-align: center;
+      font-weight: bold;
+    }
+
+    /* ----- اختيار التخصص ----- */
+    #major-select-box {
+      padding: 40px 25px;
+      text-align: center;
+    }
+
+    #major-select-box h3 {
+      margin-bottom: 25px;
+      font-size: 1.3rem;
+      color: var(--text);
+    }
+
+    #major-select {
+      padding: 14px;
+      width: 80%;
+      font-size: 1.1rem;
+      border-radius: 12px;
+      border: 2px solid #ccc;
+      background: var(--light-green);
+    }
+
+    #major-select-box button {
+      margin-top: 25px;
+      padding: 12px 28px;
+      font-size: 1.1rem;
+      border-radius: 12px;
+      background: var(--green);
+      color: white;
+      border: none;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    #major-select-box button:hover {
+      background: #005e33;
+      transform: translateY(-2px);
+    }
+
+    /* ----- صندوق الشات ----- */
+    .chat-box {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+      display: none;        /* يظهر بعد اختيار التخصص */
+      background: #fafafa;
+    }
+
+    .msg {
+      margin: 10px 0;
+      padding: 12px 16px;
+      border-radius: 14px;
+      max-width: 85%;
+      line-height: 1.6;
+    }
+
+    .bot-msg {
+      background: var(--bot-msg);
+      color: var(--text);
+      align-self: flex-start;
+    }
+
+    .user-msg {
+      background: var(--green);
+      color: white;
+      align-self: flex-end;
+    }
+
+    /* ----- الإدخال ----- */
+    .chat-input {
+      padding: 12px 16px;
+      border-top: 1px solid #eee;
+      display: none;      /* يظهر بعد اختيار التخصص */
+      background: white;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .chat-input input {
+      flex: 1;
+      padding: 12px;
+      border-radius: 12px;
+      border: 1px solid #ccc;
+      font-size: 1rem;
+    }
+
+    .chat-input button {
+      padding: 12px 20px;
+      background: var(--green);
+      color: white;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+
+    .chat-input button:hover {
+      background: #005e33;
+    }
+  </style>
+</head>
+
+<body>
+
+<div class="chat-container">
+
+  <div class="chat-header">🎓 المساعد الجامعي الذكي</div>
+
+  <!-- اختيار التخصص -->
+  <div id="major-select-box">
+    <h3>اختر تخصصك قبل البدء 👇</h3>
+
+    <select id="major-select">
+      <option disabled selected>اختر التخصص</option>
+      <option value="الذكاء الاصطناعي و الروبوتات">الذكاء الاصطناعي و الروبوتات</option>
+      <option value="التحقيقات الجنائية الرقمية">التحقيقات الجنائية الرقمية</option>
+      <option value="امن المعلومات و الفضاء الالكتروني">امن المعلومات و الفضاء الالكتروني</option>
+      <option value="علم البيانات">علم البيانات</option>
+      <option value="الواقع الافتراضي">الواقع الافتراضي</option>
+    </select>
+
+    <br>
+    <button onclick="saveMajor()">متابعة</button>
+  </div>
+
+  <!-- الرسائل -->
+  <div class="chat-box" id="chat-box">
+    <div class="bot-msg msg">مرحبًا 👋، كيف يمكنني مساعدتك اليوم؟</div>
+  </div>
+
+  <!-- الإدخال -->
+  <div class="chat-input" id="input-area">
+    <input id="user-input" type="text" placeholder="اكتب استفسارك هنا..." />
+    <button id="send-btn">إرسال</button>
+  </div>
+
+</div>
+
+<script>
+  let selectedMajor = null; // نخزن التخصص هنا
+
+  function saveMajor() {
+    const majorEl = document.getElementById("major-select");
+    const major = majorEl.value;
+
+    if (!major || major === "اختر التخصص") {
+      alert("⚠️ الرجاء اختيار التخصص.");
+      return;
+    }
+
+    selectedMajor = major;
+
+    // إخفاء اختيار التخصص وإظهار الشات
+    document.getElementById("major-select-box").style.display = "none";
+    document.getElementById("chat-box").style.display = "block";
+    document.getElementById("input-area").style.display = "flex";
+
+    // رسالة تأكيد
+    appendMessage("🔰 تم اختيار تخصص: " + major, "user");
+    appendMessage("جميل! الآن اسألني عن أي مادة أو متطلب داخل هذا التخصص 🎓", "bot");
+  }
+
+  function appendMessage(message, type) {
+    const box = document.getElementById("chat-box");
+    const div = document.createElement("div");
+    div.classList.add(type === "user" ? "user-msg" : "bot-msg", "msg");
+    div.innerHTML = message;
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+  }
+
+  document.getElementById("send-btn").onclick = sendMessage;
+  document.getElementById("user-input").addEventListener("keypress", (e) => {
+    if (e.key === "Enter") sendMessage();
+  });
+
+  function sendMessage() {
+    const inp = document.getElementById("user-input");
+    const text = inp.value.trim();
+    if (!text) return;
+
+    if (!selectedMajor) {
+      alert("⚠️ الرجاء اختيار التخصص أولاً.");
+      return;
+    }
+
+    appendMessage(text, "user");
+    inp.value = "";
+
+    fetch("/ask", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({ text, major: selectedMajor })
+    })
+    .then(res => res.json())
+    .then(data => {
+
+      // حالة طلب بيانات الجدول
+      if (data.type === "ask_credentials") {
+        appendMessage(data.message, "bot");
+        showCredentialsForm();
+        return;
+      }
+
+      appendMessage(data.message, "bot");
+    })
+    .catch(() => {
+      appendMessage("⚠️ حدث خطأ أثناء الاتصال بالخادم.", "bot");
+    });
+  }
+
+  // نموذج بيانات الجدول داخل الشات
+  function showCredentialsForm() {
+    const html = `
+      <div class="bot-msg msg">
+        <div style="margin-bottom:8px;">📘 أدخل بياناتك لإقتراح جدول:</div>
+        <input id="cred-id" placeholder="رقم الطالب" style="width:95%;padding:8px;margin:4px 0;border-radius:10px;border:1px solid #ccc;"><br>
+        <input id="cred-pass" placeholder="كلمة المرور" type="password" style="width:95%;padding:8px;margin:4px 0;border-radius:10px;border:1px solid #ccc;"><br>
+        <input id="cred-hours" placeholder="عدد الساعات" type="number" style="width:95%;padding:8px;margin:4px 0;border-radius:10px;border:1px solid #ccc;"><br>
+        <button onclick="sendCredentials()" style="padding:8px 16px;background:#00703c;color:white;border:none;border-radius:10px;cursor:pointer;margin-top:6px;">
+          إرسال البيانات
+        </button>
+      </div>
+    `;
+    appendMessage(html, "bot");
+  }
+
+  function sendCredentials() {
+    const id    = document.getElementById("cred-id").value.trim();
+    const pass  = document.getElementById("cred-pass").value.trim();
+    const hours = document.getElementById("cred-hours").value.trim() || 18;
+
+    if (!id || !pass) {
+      alert("⚠️ الرجاء تعبئة رقم الطالب وكلمة المرور.");
+      return;
+    }
+
+    fetch("/ask", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({
+        phase: "creds",
+        student_id: id,
+        password: pass,
+        max_hours: hours
+      })
+    })
+    .then(res => res.json())
+    .then(data => {
+      appendMessage(data.message, "bot");
+    })
+    .catch(() => {
+      appendMessage("⚠️ حدث خطأ أثناء الاتصال بالخادم.", "bot");
+    });
+  }
+</script>
+
+</body>
+</html>
