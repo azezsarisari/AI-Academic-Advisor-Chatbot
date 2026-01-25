@@ -1,0 +1,252 @@
+%%writefile static/styles.css
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap');
+
+:root{
+  --bg:#f7f7fb;
+  --card:#ffffff;
+  --text:#1f2937;
+  --muted:#6b7280;
+  --primary:#2563eb;
+  --bot:#eef2ff;
+  --user:#e0f2fe;
+  --border:#e5e7eb;
+}
+
+/* 🎓 الوضع الداكن (ألوان جامعة البلقاء التطبيقية) */
+body.dark {
+  --bg:#0e1210;
+  --card:#1a1f1b;
+  --text:#f3f4f6;
+  --muted:#9ca3af;
+  --primary:#1faa59;
+  --bot:#1f2621;
+  --user:#163b2d;
+  --border:#2f3630;
+}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--text);
+  font-family:"Cairo",sans-serif;
+}
+
+/* ======================
+   🧱 البنية العامة
+====================== */
+.app{
+  max-width:920px;
+  margin:0 auto;
+  height:100vh;
+  display:flex;
+  flex-direction:column;
+  padding:16px;
+}
+
+/* ======================
+   🎓 رأس الصفحة (الشعار + العنوان)
+====================== */
+.app__header{
+  text-align:center;
+  padding:8px 0 12px 0;
+}
+
+.header__content{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  gap:14px;
+}
+
+.university-logo{
+  width:50px;
+  height:50px;
+  border-radius:8px;
+  object-fit:cover;
+  border:2px solid #e5e7eb;
+  background:#fff;
+  padding:3px;
+  box-shadow:0 2px 4px rgba(0,0,0,0.1);
+}
+
+.app__header h1{
+  margin:0;
+  font-size:28px;
+  color:#111827;
+}
+
+.subtitle{
+  margin:6px 0 0 0;
+  color:var(--muted);
+}
+
+/* ======================
+   💬 منطقة المحادثة
+====================== */
+.chat{
+  flex:1;
+  overflow:auto;
+  padding:12px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+.msg{display:flex;width:100%}
+.msg--bot{justify-content:flex-start}
+.msg--user{justify-content:flex-end}
+
+.msg__bubble{
+  max-width:75%;
+  background:var(--card);
+  padding:12px 14px;
+  border-radius:14px;
+  border:1px solid var(--border);
+  line-height:1.7;
+  font-size:15px;
+  box-shadow:0 1px 1px rgba(0,0,0,.02);
+}
+
+.msg--bot .msg__bubble{background:var(--bot)}
+.msg--user .msg__bubble{background:var(--user)}
+
+.hint{
+  display:inline-block;
+  padding:2px 6px;
+  border-radius:8px;
+  background:#fff;
+  border:1px dashed var(--border);
+  color:var(--muted);
+  margin-inline-start:6px;
+  font-size:13px;
+}
+
+/* ======================
+   📝 منطقة الإدخال
+====================== */
+.composer{
+  position:sticky;
+  bottom:0;
+  background:linear-gradient(180deg,transparent,var(--bg) 40%);
+  padding-top:8px;
+}
+
+/* ✳️ جعل الخلفية غامقة في الوضع الداكن */
+body.dark #composer-form{
+  background:#1a1f1b !important;
+  border:1px solid #2f3630 !important;
+}
+
+#composer-form{
+  background:var(--card);
+  display:flex;
+  gap:8px;
+  padding:8px;
+  border-radius:14px;
+  border:1px solid var(--border);
+}
+
+.composer__input{
+  flex:1;
+  border:none;
+  outline:none;
+  background:transparent;
+  padding:10px 12px;
+  font-size:15px;
+  color:var(--text);
+}
+
+/* ✅ الوضع الداكن - نفس اللون دائماً */
+body.dark .composer__input{
+  background:#1a1f1b !important;
+  color:#cccccc;
+  border:none;
+}
+
+body.dark .composer__input::placeholder{
+  color:#cccccc;
+}
+
+/* ✅ الحفاظ على نفس اللون عند التركيز (بدون أي تغيير) */
+body.dark .composer__input:focus {
+  background:#1a1f1b !important; /* نفس لون الحقل قبل الضغط */
+  color:#cccccc !important;      /* نفس لون النص قبل الضغط */
+  outline:none !important;
+  border:none !important;
+  box-shadow:0 0 8px rgba(31,170,89,0.5); /* ✨ فقط توهج أخضر */
+  transition:box-shadow 0.2s ease-in-out;
+}
+
+.composer__send{
+  border:none;
+  background:var(--primary);
+  color:#fff;
+  border-radius:12px;
+  padding:10px 14px;
+  cursor:pointer;
+  transition:transform .05s ease, background 0.2s ease, box-shadow 0.2s;
+}
+
+/* 🌿 تأثير hover للزر */
+.composer__send:hover{
+  background:#178a4c;
+  box-shadow:0 0 6px rgba(31,170,89,0.5);
+}
+.composer__send:active{transform:translateY(1px)}
+
+/* ======================
+   🔐 حقول بيانات الطالب
+====================== */
+.credentials{
+  margin-top:8px;
+  display:flex;
+  gap:8px;
+  align-items:center;
+  flex-wrap:wrap;
+}
+
+.credentials input{
+  border:1px solid var(--border);
+  background:#fff;
+  border-radius:10px;
+  padding:8px 10px;
+  font-size:14px;
+}
+
+.credentials button{
+  background:var(--primary);
+  color:#fff;
+  border:none;
+  padding:8px 12px;
+  border-radius:10px;
+  cursor:pointer;
+}
+
+/* ======================
+   ⏳ فقاعة التحميل
+====================== */
+.loading{
+  position:relative;
+  color:var(--muted);
+  font-style:italic;
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+}
+
+.loading::after{
+  content:"";
+  width:10px;
+  height:10px;
+  border:2px solid var(--primary);
+  border-top-color:transparent;
+  border-radius:50%;
+  animation:spin 0.8s linear infinite;
+}
+
+@keyframes spin{
+  from{transform:rotate(0deg);}
+  to{transform:rotate(360deg);}
+}
