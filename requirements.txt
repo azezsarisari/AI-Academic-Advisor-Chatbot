@@ -1,0 +1,39 @@
+!pip install -q Flask==3.0.0 pyngrok==7.1.6 sentence-transformers faiss-cpu google-generativeai tabulate pandas numpy
+!pip install -U bitsandbytes accelerate
+!pip install fuzzywuzzy
+!pip install flask-ngrok
+import os
+os.makedirs("templates", exist_ok=True)
+os.makedirs("static", exist_ok=True)
+print("✅ المجلدات templates/ و static/ جاهزة")
+!pkill -f app.py || true
+!pkill -f ngrok
+!pkill -f flask || true
+!pkill -f gunicorn || true
+!pkill -f app.py
+# main.py
+import subprocess, time
+
+flask_proc = subprocess.Popen(["python", "app.py"])
+time.sleep(8)
+print("✅ تم تشغيل الخادم، يمكنك الآن فتح المتصفح.")
+!pkill -f flask
+!pkill -f gunicorn
+!pkill -f ngrok
+!fuser -k 5040/tcp
+!lsof -i:5040
+!python app.py &
+from pyngrok import ngrok, conf
+
+# ضبط المنطقة والتوكن
+conf.get_default().region = "eu"  # غيّرها إذا لزم
+ngrok.set_auth_token("your token")
+
+# إنهاء أي جلسة قديمة
+ngrok.kill()
+
+# فتح نفق جديد
+public_url = ngrok.connect(5040, bind_tls=True)
+print("✅ افتح التطبيق من هنا:")
+print(public_url)
+
