@@ -1,0 +1,137 @@
+%%writefile static/chat.js
+// ============================================================
+// 🤖 المساعد الجامعي الذكي - واجهة المستخدم (Chat UI)
+// ============================================================
+
+const chat = document.getElementById("chat");
+const form = document.getElementById("composer-form");
+const input = document.getElementById("user-input");
+
+// --------------------------------------------
+// دالة لإضافة رسالة جديدة
+// --------------------------------------------
+function addMessage(text, sender = "bot") {
+  const wrap = document.createElement("div");
+  wrap.className = `msg msg--${sender}`;
+  const bubble = document.createElement("div");
+  bubble.className = "msg__bubble";
+  bubble.innerHTML = text;
+  wrap.appendChild(bubble);
+  chat.appendChild(wrap);
+  chat.scrollTop = chat.scrollHeight;
+  return bubble;
+}
+
+// --------------------------------------------
+// 🌀 فقاعة انتظار
+// --------------------------------------------
+function addLoadingBubble(text = "⏳ جاري المعالجة...") {
+  const wrap = document.createElement("div");
+  wrap.className = "msg msg--bot";
+  const bubble = document.createElement("div");
+  bubble.className = "msg__bubble loading";
+  bubble.textContent = text;
+  wrap.appendChild(bubble);
+  chat.appendChild(wrap);
+  chat.scrollTop = chat.scrollHeight;
+  return wrap;
+}
+
+// --------------------------------------------
+// دالة إرسال الرسائل
+// --------------------------------------------
+form.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const text = input.value.trim();
+  if (!text) return;
+
+  addMessage(text, "user");
+  input.value = "";
+
+  // فقاعة تحميل
+  const loading = addLoadingBubble();
+
+  try {
+    const res = await fetch("/ask", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text, phase: "message" }),
+    });
+
+    const data = await res.json();
+    loading.remove();
+
+    if (data.type === "ask_credentials") {
+      // إذا احتاج إدخال بيانات الطالب
+      addMessage(data.message, "bot");
+      renderCredentialsRequest();
+    } else if (data.type === "bot_html") {
+      addMessage(data.message, "bot");
+    } else if (data.type === "bot_text") {
+      addMessage(data.message, "bot");
+    } else {
+      addMessage(data.message || data.response || "❌ لم أفهم الطلب.", "bot");
+    }
+  } catch (err) {
+    loading.remove();
+    addMessage("❌ حدث خطأ أثناء الاتصال بالخادم.", "bot");
+  }
+});
+
+// --------------------------------------------
+// واجهة إدخال بيانات الطالب (للاقتراح)
+// --------------------------------------------
+function renderCredentialsRequest() {
+  const wrap = document.createElement("div");
+  wrap.className = "msg msg--bot";
+  const bubble = document.createElement("div");
+  bubble.className = "msg__bubble";
+
+  const p = document.createElement("p");
+  p.textContent = "📘 أدخل بياناتك لإكمال اقتراح الجدول:";
+
+  const creds = document.createElement("div");
+  creds.className = "credentials";
+
+  const idInput = document.createElement("input");
+  idInput.placeholder = "رقم الطالب";
+  idInput.inputMode = "numeric";
+
+  const passInput = document.createElement("input");
+  passInput.placeholder = "كلمة المرور";
+  passInput.type = "password";
+
+  const hoursInput = document.createElement("input");
+  hoursInput.placeholder = "عدد الساعات القصوى (مثلاً 18)";
+  hoursInput.inputMode = "numeric";
+
+  const btn = document.createElement("button");
+  btn.textContent = "إرسال";
+
+  creds.appendChild(idInput);
+  creds.appendChild(passInput);
+  creds.appendChild(hoursInput);
+  creds.appendChild(btn);
+
+  bubble.appendChild(p);
+  bubble.appendChild(creds);
+  wrap.appendChild(bubble);
+  chat.appendChild(wrap);
+  chat.scrollTop = chat.scrollHeight;
+
+  btn.addEventListener("click", async () => {
+    addMessage(`📘 رقم الطالب: ${idInput.value} • الحد الأقصى: ${hoursInput.value} ساعة`, "user");
+    const res = await fetch("/ask", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        phase: "creds",
+        student_id: idInput.value,
+        password: passInput.value,
+        max_hours: hoursInput.value,
+      }),
+    });
+    const data = await res.json();
+    addMessage(data.message || data.response || "⚠️ حدث خطأ.", "bot");
+  });
+}
